@@ -1,11 +1,7 @@
-"""Настройка сетевого имени и подключение Raspberry Pi Pico 2 W к Wi-Fi.
-
-Важно: файл называется network.py по условию задачи, но такое же имя имеет
-встроенный модуль MicroPython. Поэтому main.py загружает этот файл явно и
-передаёт встроенный модуль через переменную ``_network``.
-"""
+"""Настройка сетевого имени и подключение Raspberry Pi Pico 2 W к Wi-Fi."""
 
 import uasyncio as asyncio
+import network as _network
 
 from config import (
     DEVICE_HOSTNAME,
@@ -14,14 +10,6 @@ from config import (
     WIFI_RETRY_INTERVAL,
     WIFI_SSID,
 )
-
-# main.py заранее помещает сюда встроенный модуль MicroPython ``network``.
-# Явное присваивание также объясняет это Pylance и убирает предупреждение о
-# якобы неопределённом имени. Напрямую импортировать данный файл не следует.
-_network = globals().get("_network")
-if _network is None:
-    raise RuntimeError("network.py должен загружаться через main.py")
-
 
 def _set_hostname(wlan):
     """Задать hostname с учётом различий между версиями MicroPython."""

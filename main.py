@@ -2,35 +2,16 @@
 
 import uasyncio as asyncio
 
-# Сначала импортируем встроенный драйвер. На Pico W встроенные модули имеют
-# приоритет над одноимёнными файлами, поэтому здесь получаем именно WLAN API.
-import network as micropython_network
-
 import button
+import wifi
 import webserver
-
-
-def _load_network_module():
-    """Загрузить наш network.py под именем wifi_manager без конфликта имён."""
-    namespace = {
-        "__name__": "wifi_manager",
-        "_network": micropython_network,
-    }
-
-    with open("network.py", "r") as source_file:
-        source = source_file.read()
-
-    exec(compile(source, "network.py", "exec"), namespace)
-    return namespace
 
 
 async def main():
     """Запустить независимые фоновые задачи устройства."""
-    wifi_manager = _load_network_module()
-
     # Кнопка начинает работать сразу, даже если Wi-Fi отсутствует.
     asyncio.create_task(button.watch())
-    asyncio.create_task(wifi_manager["keep_connected"]())
+    asyncio.create_task(wifi.keep_connected())
 
     # Сервер сам повторяет открытие порта при временной сетевой ошибке.
     await webserver.serve_forever()
