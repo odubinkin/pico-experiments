@@ -94,6 +94,24 @@ HTML = """<!doctype html>
       font-variant-numeric: tabular-nums;
       font-weight: 700;
     }
+
+    .color-buttons {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .color-button {
+      padding: 14px 8px;
+    }
+
+    .color-button.red { background: #df4c55; }
+    .color-button.green { background: #35a66f; }
+    .color-button.blue { background: #3c7ee9; }
+    .color-button.red:hover { background: #c83d47; }
+    .color-button.green:hover { background: #278b5a; }
+    .color-button.blue:hover { background: #2869cf; }
+    .color-button.is-on { box-shadow: inset 0 0 0 3px #fff; }
   </style>
 </head>
 <body>
@@ -104,6 +122,16 @@ HTML = """<!doctype html>
       <h2>Светодиод</h2>
       <button id="led-toggle" type="button">Переключить светодиод</button>
       <p id="led-status" class="status" role="status">Готово к управлению</p>
+    </section>
+
+    <section>
+      <h2>RGB-светодиод</h2>
+      <div class="color-buttons">
+        <button class="color-button red" data-color="red" type="button">Красный</button>
+        <button class="color-button green" data-color="green" type="button">Зелёный</button>
+        <button class="color-button blue" data-color="blue" type="button">Синий</button>
+      </div>
+      <p id="rgb-status" class="status" role="status">Все цвета выключены</p>
     </section>
 
     <section>
@@ -122,6 +150,8 @@ HTML = """<!doctype html>
   <script>
     const ledButton = document.querySelector('#led-toggle');
     const ledStatus = document.querySelector('#led-status');
+    const rgbButtons = document.querySelectorAll('.color-button');
+    const rgbStatus = document.querySelector('#rgb-status');
     const fanButton = document.querySelector('#fan-toggle');
     const fanSlider = document.querySelector('#fan-speed');
     const fanSpeedValue = document.querySelector('#fan-speed-value');
@@ -137,6 +167,22 @@ HTML = """<!doctype html>
       fanStatus.textContent = result.fan === 'on'
         ? 'Вентилятор включён: ' + result.speed + '%'
         : 'Вентилятор выключен';
+    }
+
+    function showRgbState(result) {
+      const enabled = [];
+      const names = { red: 'Красный', green: 'Зелёный', blue: 'Синий' };
+
+      rgbButtons.forEach((button) => {
+        const isOn = result.rgb[button.dataset.color] === 'on';
+        button.classList.toggle('is-on', isOn);
+        button.setAttribute('aria-pressed', isOn ? 'true' : 'false');
+        if (isOn) enabled.push(names[button.dataset.color]);
+      });
+
+      rgbStatus.textContent = enabled.length
+        ? 'Включены: ' + enabled.join(', ')
+        : 'Все цвета выключены';
     }
 
     ledButton.addEventListener('click', async () => {
@@ -165,6 +211,28 @@ HTML = """<!doctype html>
       } finally {
         ledButton.disabled = false;
       }
+    });
+
+    rgbButtons.forEach((button) => {
+      button.addEventListener('click', async () => {
+        const color = button.dataset.color;
+        button.disabled = true;
+        rgbStatus.textContent = 'Отправка команды…';
+
+        try {
+          const response = await fetch('/api/rgb/' + color + '/toggle', {
+            method: 'GET',
+            cache: 'no-store'
+          });
+          if (!response.ok) throw new Error('HTTP ' + response.status);
+          showRgbState(await response.json());
+        } catch (error) {
+          console.error(error);
+          rgbStatus.textContent = 'Не удалось связаться с Pico';
+        } finally {
+          button.disabled = false;
+        }
+      });
     });
 
     fanButton.addEventListener('click', async () => {
@@ -230,7 +298,22 @@ HTML = """<!doctype html>
       }
     }
 
+    async function loadRgbState() {
+      try {
+        const response = await fetch('/api/rgb/status', {
+          method: 'GET',
+          cache: 'no-store'
+        });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        showRgbState(await response.json());
+      } catch (error) {
+        console.error(error);
+        rgbStatus.textContent = 'Не удалось получить состояние RGB';
+      }
+    }
+
     loadFanState();
+    loadRgbState();
   </script>
 </body>
 </html>

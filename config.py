@@ -27,6 +27,12 @@ FAN_PWM_FREQUENCY = 20000
 FAN_MIN_DUTY_PERCENT = 60
 FAN_DEFAULT_SPEED = 50
 
+# RGB-светодиод подключён катодами каналов к GPIO, поэтому он работает с
+# инверсной логикой: уровень 1 выключает канал, а уровень 0 включает его.
+RGB_RED_PIN = 20
+RGB_GREEN_PIN = 19
+RGB_BLUE_PIN = 18
+
 # Максимальное время одной попытки подключения к Wi-Fi, в секундах.
 WIFI_CONNECT_TIMEOUT = 15
 

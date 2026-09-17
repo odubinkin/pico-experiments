@@ -3,6 +3,7 @@
 import uasyncio as asyncio
 
 import button
+import rgb
 import wifi
 import webserver
 
@@ -27,5 +28,7 @@ except KeyboardInterrupt:
     blink.set_state(False)
     fan.set_state(False)
 finally:
+    # RGB-каналы инверсные, поэтому rgb.py установит на всех GPIO уровень 1.
+    rgb.set_all(False)
     # Очищаем event loop для удобного повторного запуска из интерактивной REPL.
     asyncio.new_event_loop()
