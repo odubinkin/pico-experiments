@@ -15,6 +15,19 @@ WEB_PORT = 80
 # button.py включает внутреннюю подтяжку входа к питанию.
 BUTTON_PIN = 16
 
+# Джойстик питается от 3V3(OUT), даже если контакт модуля подписан +5V.
+# На входы Pico нельзя подавать 5 В. SW замыкается на GND при нажатии.
+JOYSTICK_X_PIN = 26
+JOYSTICK_Y_PIN = 27
+JOYSTICK_SW_PIN = 22
+JOYSTICK_POLL_MS = 20
+JOYSTICK_LOG_MS = 200
+JOYSTICK_DEADZONE = 0.12
+JOYSTICK_DEBOUNCE_MS = 40
+JOYSTICK_INVERT_X = False
+# Обычно движение вперёд уменьшает значение VRY.
+JOYSTICK_INVERT_Y = True
+
 # Возвращаем проверенную схему: PWM подаётся только на INA, а INB постоянно
 # удерживается в нуле обычным цифровым выходом.
 FAN_INA_PIN = 1
@@ -47,8 +60,13 @@ MOTOR_AIN2_PIN = 4
 # Второй (правый) мотор.
 MOTOR_RIGHT_AIN1_PIN = 5
 MOTOR_RIGHT_AIN2_PIN = 6
+# Правый мотор установлен/подключён с противоположной полярностью.
+MOTOR_RIGHT_INVERT = True
 MOTOR_PWM_FREQUENCY = 20000
 MOTOR_DEFAULT_SPEED = 50
+# Команда скорости 1–100 преобразуется в физический PWM 60–100%.
+MOTOR_MIN_DUTY_PERCENT = 60
+MOTOR_REVERSE_PAUSE_MS = 300
 
 if MOTOR_ENABLED:
     _motor_pins = (MOTOR_AIN1_PIN, MOTOR_AIN2_PIN,

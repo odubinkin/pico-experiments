@@ -2,12 +2,14 @@
 
 from machine import Pin, PWM
 from config import (MOTOR_ENABLED, MOTOR_AIN1_PIN, MOTOR_AIN2_PIN,
-                    MOTOR_RIGHT_AIN1_PIN, MOTOR_RIGHT_AIN2_PIN,
-                    MOTOR_PWM_FREQUENCY, MOTOR_DEFAULT_SPEED)
+                    MOTOR_RIGHT_AIN1_PIN, MOTOR_RIGHT_AIN2_PIN, MOTOR_RIGHT_INVERT,
+                    MOTOR_PWM_FREQUENCY, MOTOR_DEFAULT_SPEED, MOTOR_MIN_DUTY_PERCENT)
 
 
 class Motor:
-    def __init__(self, ain1_pin, ain2_pin):
+    def __init__(self, ain1_pin, ain2_pin, invert=False):
+        if invert:
+            ain1_pin, ain2_pin = ain2_pin, ain1_pin
         self._direction = "stop"
         self._speed = MOTOR_DEFAULT_SPEED
         self._ain1 = None
@@ -24,7 +26,9 @@ class Motor:
         # Сначала обнуляем оба входа, затем включаем выбранное направление.
         self._ain1.duty_u16(0)
         self._ain2.duty_u16(0)
-        duty = (self._speed * 65535 + 50) // 100
+        percent = (MOTOR_MIN_DUTY_PERCENT
+                   + (100 - MOTOR_MIN_DUTY_PERCENT) * (self._speed - 1) / 99)
+        duty = round(percent * 65535 / 100) if self._speed else 0
         if self._direction == "forward":
             self._ain1.duty_u16(duty)
         elif self._direction == "reverse":
@@ -59,7 +63,7 @@ class Motor:
 
 _motors = {
     "left": Motor(MOTOR_AIN1_PIN, MOTOR_AIN2_PIN),
-    "right": Motor(MOTOR_RIGHT_AIN1_PIN, MOTOR_RIGHT_AIN2_PIN),
+    "right": Motor(MOTOR_RIGHT_AIN1_PIN, MOTOR_RIGHT_AIN2_PIN, MOTOR_RIGHT_INVERT),
 }
 
 

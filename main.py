@@ -3,6 +3,7 @@
 import uasyncio as asyncio
 
 import button
+import joystick
 import rgb
 import motor
 import wifi
@@ -13,6 +14,7 @@ async def main():
     """Запустить независимые фоновые задачи устройства."""
     # Кнопка начинает работать сразу, даже если Wi-Fi отсутствует.
     asyncio.create_task(button.watch())
+    asyncio.create_task(joystick.watch())
     asyncio.create_task(wifi.keep_connected())
 
     # Сервер сам повторяет открытие порта при временной сетевой ошибке.
