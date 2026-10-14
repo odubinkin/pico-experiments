@@ -1,10 +1,10 @@
-"""HTML-страница управления светодиодом и вентилятором.
+"""HTML-страница управления светодиодами, вентилятором и мотором.
 
 Страница хранится прямо в исходном коде, поэтому Pico не нужно отдельно
 читать HTML, CSS и JavaScript с файловой системы при каждом запросе.
 """
 
-from config import FAN_DEFAULT_SPEED
+from config import FAN_DEFAULT_SPEED, MOTOR_DEFAULT_SPEED
 
 
 # Весь интерфейс автономен и не загружает библиотеки, шрифты или стили из
@@ -144,6 +144,36 @@ HTML = """<!doctype html>
         <output id="fan-speed-value" for="fan-speed">__FAN_DEFAULT_SPEED__%</output>
       </label>
       <p id="fan-status" class="status" role="status">Вентилятор выключен</p>
+    </section>
+    <section>
+      <h2>Левый</h2>
+      <div class="color-buttons">
+        <button id="motor-left-forward" type="button" disabled>Вперёд</button>
+        <button id="motor-left-stop" type="button">Стоп</button>
+        <button id="motor-left-reverse" type="button" disabled>Назад</button>
+      </div>
+      <label class="speed-row">
+        <input id="motor-left-speed" type="range" min="0" max="100"
+               value="__MOTOR_DEFAULT_SPEED__" aria-label="Скорость левый мотора" disabled>
+        <output id="motor-left-speed-value" for="motor-left-speed">__MOTOR_DEFAULT_SPEED__%</output>
+      </label>
+      <p id="motor-left-status" class="status" role="status">Получение состояния мотора…</p>
+      <p class="status">Перед сменой направления нажмите «Стоп» и дождитесь остановки.</p>
+    </section>
+    <section>
+      <h2>Правый</h2>
+      <div class="color-buttons">
+        <button id="motor-right-forward" type="button" disabled>Вперёд</button>
+        <button id="motor-right-stop" type="button">Стоп</button>
+        <button id="motor-right-reverse" type="button" disabled>Назад</button>
+      </div>
+      <label class="speed-row">
+        <input id="motor-right-speed" type="range" min="0" max="100"
+               value="__MOTOR_DEFAULT_SPEED__" aria-label="Скорость правый мотора" disabled>
+        <output id="motor-right-speed-value" for="motor-right-speed">__MOTOR_DEFAULT_SPEED__%</output>
+      </label>
+      <p id="motor-right-status" class="status" role="status">Получение состояния мотора…</p>
+      <p class="status">Перед сменой направления нажмите «Стоп» и дождитесь остановки.</p>
     </section>
   </main>
 
@@ -312,6 +342,59 @@ HTML = """<!doctype html>
       }
     }
 
+    function setupMotor(side) {
+      const motorForward = document.querySelector('#motor-' + side + '-forward');
+      const motorReverse = document.querySelector('#motor-' + side + '-reverse');
+      const motorStop = document.querySelector('#motor-' + side + '-stop');
+      const motorSlider = document.querySelector('#motor-' + side + '-speed');
+      const motorSpeedValue = document.querySelector('#motor-' + side + '-speed-value');
+      const motorStatus = document.querySelector('#motor-' + side + '-status');
+      let motorRequest = 0;
+
+      function showMotorState(result) {
+        motorSlider.value = result.speed;
+        motorSpeedValue.value = result.speed + '%';
+        motorSlider.disabled = !result.enabled;
+        motorForward.disabled = !result.enabled || result.direction === 'reverse';
+        motorReverse.disabled = !result.enabled || result.direction === 'forward';
+        motorForward.setAttribute('aria-pressed', result.direction === 'forward');
+        motorReverse.setAttribute('aria-pressed', result.direction === 'reverse');
+        motorStatus.textContent = !result.enabled ? 'Модуль мотора отключён'
+          : result.direction === 'stop' ? 'Мотор остановлен'
+          : (result.direction === 'forward' ? 'Вперёд: ' : 'Назад: ') + result.speed + '%';
+      }
+
+      async function motorCommand(action) {
+        const request = ++motorRequest;
+        motorForward.disabled = true;
+        motorReverse.disabled = true;
+        motorSlider.disabled = true;
+        // «Стоп» доступен даже во время запроса или после сетевой ошибки.
+        try {
+          const response = await fetch('/api/motor/' + side + '/' + action, { cache: 'no-store' });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.message || result.error);
+          if (request === motorRequest) showMotorState(result);
+        } catch (error) {
+          console.error(error);
+          if (request === motorRequest) {
+            motorStatus.textContent = 'Команда не подтверждена. Нажмите «Стоп» для повторной связи.';
+          }
+        }
+      }
+
+      motorForward.addEventListener('click', () => motorCommand('forward'));
+      motorReverse.addEventListener('click', () => motorCommand('reverse'));
+      motorStop.addEventListener('click', () => motorCommand('stop'));
+      motorSlider.addEventListener('input', () => {
+        motorSpeedValue.value = motorSlider.value + '%';
+      });
+      motorSlider.addEventListener('change', () => motorCommand('speed/' + motorSlider.value));
+      motorCommand('status');
+    }
+
+    setupMotor('left');
+    setupMotor('right');
     loadFanState();
     loadRgbState();
   </script>
@@ -326,4 +409,5 @@ def get_html():
     # отдельно менять в HTML после настройки контроллера.
     return (
         HTML.replace("__FAN_DEFAULT_SPEED__", str(FAN_DEFAULT_SPEED))
+        .replace("__MOTOR_DEFAULT_SPEED__", str(MOTOR_DEFAULT_SPEED))
     )

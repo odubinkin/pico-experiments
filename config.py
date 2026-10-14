@@ -38,3 +38,22 @@ WIFI_CONNECT_TIMEOUT = 15
 
 # После неудачи фоновая задача повторяет подключение через этот интервал.
 WIFI_RETRY_INTERVAL = 15
+
+# Оба мотора доступны по умолчанию; при загрузке остановлены.
+# Первый (левый) мотор.
+MOTOR_ENABLED = True
+MOTOR_AIN1_PIN = 3
+MOTOR_AIN2_PIN = 4
+# Второй (правый) мотор.
+MOTOR_RIGHT_AIN1_PIN = 5
+MOTOR_RIGHT_AIN2_PIN = 6
+MOTOR_PWM_FREQUENCY = 20000
+MOTOR_DEFAULT_SPEED = 50
+
+if MOTOR_ENABLED:
+    _motor_pins = (MOTOR_AIN1_PIN, MOTOR_AIN2_PIN,
+                   MOTOR_RIGHT_AIN1_PIN, MOTOR_RIGHT_AIN2_PIN)
+    if len(set(_motor_pins)) != 4:
+        raise ValueError("Motor GPIO pins must not overlap")
+    if set(_motor_pins) & {FAN_INA_PIN, FAN_INB_PIN}:
+        raise ValueError("Motor and fan GPIO pins must not overlap")

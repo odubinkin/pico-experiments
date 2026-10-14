@@ -9,6 +9,7 @@ except ImportError:
 import blink
 import fan
 import rgb
+import motor
 
 
 def _json_response(status, data):
@@ -43,6 +44,29 @@ def handle_request(method, path):
     # Query string не участвует в выборе маршрута. Например,
     # /api/blink/toggle?source=test обрабатывается тем же методом.
     clean_path = path.split("?", 1)[0]
+
+    if clean_path.startswith("/api/motor/"):
+        if method != "GET":
+            return _json_response(405, {"error": "method_not_allowed", "allowed": ["GET"]})
+        action = clean_path[len("/api/motor/"):]
+        # Старые URL без стороны продолжают управлять левым мотором.
+        side = "left"
+        if action.startswith(("left/", "right/")):
+            side, action = action.split("/", 1)
+        if action == "status":
+            return _json_response(200, dict(ok=True, **motor.get_state(side)))
+        if not motor.get_state(side)["enabled"]:
+            return _json_response(503, {"error": "motor_disabled"})
+        try:
+            if action in ("forward", "reverse", "stop"):
+                motor.set_direction(action, side)
+            elif action.startswith("speed/"):
+                motor.set_speed(int(action[len("speed/"):]), side)
+            else:
+                return _json_response(404, {"error": "not_found"})
+        except (TypeError, ValueError) as error:
+            return _json_response(400, {"error": "invalid_motor_command", "message": str(error)})
+        return _json_response(200, dict(ok=True, **motor.get_state(side)))
 
     if clean_path == "/api/blink/toggle":
         if method != "GET":
